@@ -39,9 +39,21 @@ module homework13::MyCoin {
         let val = coin::value(&coin);
         let half_val = val / 2;
         let half_coin = coin::split(&mut coin, half_val, ctx);
-        let recipient = tx_context::sender(ctx);
-        transfer::public_transfer(half_coin, recipient);
-        transfer::public_transfer(coin, recipient);
+        let sender = tx_context::sender(ctx);
+        transfer::public_transfer(half_coin, sender);
+        transfer::public_transfer(coin, sender);
     }
 
+    public entry fun pay_for_item(coin: Coin<MYCOIN>, cost: u64, recipient:address, ctx: &mut TxContext) {
+        let val = coin::value(&coin);
+        assert!(val >= cost, 1);
+        if (val > cost) {
+            let payment = coin::split(&mut coin, cost, ctx);
+            let sender = tx_context::sender(ctx);
+            transfer::public_transfer(payment, recipient);
+            transfer::public_transfer(coin, sender);
+        } else {
+            transfer::public_transfer(coin, recipient);
+        }
+    }
 }
