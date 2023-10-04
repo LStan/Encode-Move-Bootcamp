@@ -3,7 +3,7 @@ import { Separator } from "@radix-ui/react-separator";
 import GridLoader from "react-spinners/GridLoader";
 import LoadingOverlay from "react-loading-overlay-ts";
 import SentGiftList from "./SentGiftList";
-// import ReceivedGiftList from "./ReceivedGiftList";
+import ReceivedGiftList from "./ReceivedGiftList";
 
 /* 
     This component is responsible for rendering the list of gifts sent and received by the user.
@@ -24,10 +24,10 @@ export default function GiftList(props: {
             setTxn={props.setTxn}
           />
           <Separator className="mt-2 bg-slate-200 dark:bg-slate-800 h-[1px] w-full" />
-          {/* <ReceivedGiftList
+          <ReceivedGiftList
             isTxnInProgress={props.isTxnInProgress}
             setTxn={props.setTxn}
-          /> */}
+          />
         </CardContent>
       </Card>
     </LoadingOverlay>

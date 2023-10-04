@@ -7,10 +7,8 @@ import GiftCreator from "./GiftCreator";
 import GiftList from "./GiftList";
 
 export default function Home() {
-  const { currentAccount, currentWallet, isConnected } = useWalletKit();
+  const { currentAccount, isConnected } = useWalletKit();
   const [txnInProgress, setTxnInProgress] = useState(false);
-  // console.log(currentAccount?.chains);
-  // console.log(currentWallet?.accounts[1].address);
 
   return (
     <div className="min-h-screen h-full w-full max-w-screen flex flex-col items-center dark:bg-slate-950">
@@ -28,7 +26,7 @@ export default function Home() {
       <div className="my-6">
         <div className="flex flex-col items-center">
           <h1 className="text-4xl font-extrabold transition-colors">
-            The Birthday Bot
+            The Birthday Gifts
           </h1>
           <p className="w-10/12 mt-6">
             An automated and on-chain gift giving platform. Use this platform to
@@ -37,7 +35,7 @@ export default function Home() {
           </p>
         </div>
       </div>
-      {isConnected && currentAccount?.chains[0]  == "sui:devnet" && (
+      {isConnected && currentAccount?.chains[0] == "sui:devnet" && (
         <div className="h-full w-full flex lg:flex-row flex-col items-center justify-center gap-20 my-4 grow">
           <GiftCreator
             setTxn={setTxnInProgress}

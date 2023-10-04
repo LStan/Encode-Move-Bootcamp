@@ -5,34 +5,22 @@ import { TransactionBlock } from "@mysten/sui.js/transactions";
 import { BCS, getSuiMoveConfig } from "@mysten/bcs";
 import { MIST_PER_SUI } from "@mysten/sui.js/utils";
 import { CardDescription, CardTitle } from "@/components/card";
+import { Button } from "@/components/button";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
   TableRow,
+  TableHead,
+  TableCell,
+  TableBody,
 } from "@/components/table";
-import { ScrollArea } from "@/components/scroll-area";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/tooltip";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/alert-dialog";
-import { Button } from "@/components/button";
-import { X } from "lucide-react";
+import { ScrollArea } from "@/components/scroll-area";
 
 type Gift = {
   address: string;
@@ -40,7 +28,7 @@ type Gift = {
   timestamp: number;
 };
 
-export default function SentGiftList(props: {
+export default function ReceivedGiftList(props: {
   isTxnInProgress: boolean;
   setTxn: (isTxnInProgress: boolean) => void;
 }) {
@@ -66,7 +54,7 @@ export default function SentGiftList(props: {
 
     const txb = new TransactionBlock();
     txb.moveCall({
-      target: `${process.env.MODULE_ADDRESS}::${process.env.MODULE_NAME}::view_gifter_gifts`,
+      target: `${process.env.MODULE_ADDRESS}::${process.env.MODULE_NAME}::view_recipient_gifts`,
       arguments: [
         txb.pure(currentAccount?.address),
         txb.object(`${process.env.STATE_ADDRESS}`),
@@ -82,7 +70,7 @@ export default function SentGiftList(props: {
 
     const bcs = new BCS(getSuiMoveConfig());
 
-    let recipients = bcs.de("vector<address>", new Uint8Array(res2[0][0]));
+    let gifters = bcs.de("vector<address>", new Uint8Array(res2[0][0]));
     let gift_amounts = bcs.de("vector<u64>", new Uint8Array(res2[1][0]));
     let birthday_timestamp_ms = bcs.de(
       "vector<u64>",
@@ -90,27 +78,28 @@ export default function SentGiftList(props: {
     );
 
     let result: Gift[] = [];
-    for (let i = 0; i < recipients.length; i += 1) {
+    for (let i = 0; i < gifters.length; i += 1) {
       result.push({
-        address: recipients[i],
+        address: gifters[i],
         amount: Number(gift_amounts[i]) / Number(MIST_PER_SUI),
         timestamp: Number(birthday_timestamp_ms[i]),
       });
     }
-    // console.log(result);
+    console.log(result);
 
     return result;
   };
 
-  const cancelGift = async (recipientAddress: string) => {
+  const claimGift = async (gifter: string) => {
     props.setTxn(true);
 
     const txb = new TransactionBlock();
     txb.moveCall({
-      target: `${process.env.MODULE_ADDRESS}::${process.env.MODULE_NAME}::remove_birthday_gift`,
+      target: `${process.env.MODULE_ADDRESS}::${process.env.MODULE_NAME}::claim_birthday_gift`,
       arguments: [
-        txb.pure(recipientAddress),
+        txb.pure(gifter),
         txb.object(`${process.env.STATE_ADDRESS}`),
+        txb.object("0x6"), // clock
       ],
     });
 
@@ -131,11 +120,10 @@ export default function SentGiftList(props: {
   return (
     <div className="flex flex-col gap-2">
       <div>
-        <CardTitle className="my-2">Gifts sent from you</CardTitle>
+        <CardTitle className="my-2">Gifts sent to you!</CardTitle>
         <CardDescription className="break-normal w-96">
-          View all of the unclaimed gifts you have sent to others. You can
-          cancel any of these gifts at any time and the SUI will be returned to
-          your wallet.
+          View and open all of your gifts! You can only open gifts after the
+          release time has passed.
         </CardDescription>
       </div>
       <ScrollArea className="border rounded-lg">
@@ -143,10 +131,10 @@ export default function SentGiftList(props: {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-center">Recipient</TableHead>
-                <TableHead className="text-center">Birthday</TableHead>
+                <TableHead className="text-center">From</TableHead>
                 <TableHead className="text-center">Amount</TableHead>
-                <TableHead className="text-center">Cancel gift</TableHead>
+                <TableHead className="text-center">Release time</TableHead>
+                <TableHead className="text-center">Claim</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -154,7 +142,7 @@ export default function SentGiftList(props: {
                 <TableRow>
                   <TableCell colSpan={4}>
                     <p className="break-normal w-100 text-center">
-                      You don't have any active gifts. Send some gifts to you friends
+                      You have no gifts yet.
                     </p>
                   </TableCell>
                 </TableRow>
@@ -162,7 +150,7 @@ export default function SentGiftList(props: {
               {gifts.map((gift, index) => {
                 return (
                   <TableRow key={index}>
-                    <TableCell className="font-mono">
+                    <TableCell className="font-mono text-center">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger className="underline">
@@ -171,18 +159,6 @@ export default function SentGiftList(props: {
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>{gift.address}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger className="underline">
-                            {new Date(gift.timestamp).toLocaleDateString()}
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{new Date(gift.timestamp).toLocaleString()}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -200,54 +176,28 @@ export default function SentGiftList(props: {
                       </TooltipProvider>
                     </TableCell>
                     <TableCell className="text-center">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive">
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will cancel the gift for{" "}
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger className="underline">
-                                    {gift.address.slice(0, 6)}...
-                                    {gift.address.slice(-4)}
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{gift.address}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>{" "}
-                              and return the{" "}
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger className="underline">
-                                    {gift.amount.toFixed(2)} SUI
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{gift.amount.toFixed(9)} SUI</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>{" "}
-                              SUI to your wallet.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogAction
-                              onClick={() => {
-                                cancelGift(gift.address);
-                              }}
-                            >
-                              Yes
-                            </AlertDialogAction>
-                            <AlertDialogCancel>No</AlertDialogCancel>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger className="underline">
+                            {new Date(gift.timestamp).toLocaleDateString()}
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{new Date(gift.timestamp).toLocaleString()}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          claimGift(gift.address);
+                        }}
+                        disabled={gift.timestamp >= Date.now()}
+                      >
+                        Claim
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
